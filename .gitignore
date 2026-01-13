@@ -1,0 +1,13 @@
+# Extension ZIP files - these should only be in releases
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
