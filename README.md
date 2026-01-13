@@ -70,19 +70,3 @@ The extension uses:
 - No data is sent to external servers
 - You can clear your data at any time
 
-## Development
-
-To modify the extension:
-
-1. Edit the files in the extension folder
-2. Reload the extension in your browser's extensions page
-3. Test on various websites
-
-## Note
-
-This is a basic autofill extension. For production use, consider adding:
-- Encryption for sensitive data
-- Multiple profiles
-- Password management
-- Import/export functionality
-- Site-specific autofill rules
