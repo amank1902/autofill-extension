@@ -68,22 +68,56 @@ function saveData() {
 // Fill current page
 function fillCurrentPage() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const currentTab = tabs[0];
+    
+    // Check if we can inject scripts on this page
+    if (currentTab.url.startsWith('chrome://') || 
+        currentTab.url.startsWith('edge://') || 
+        currentTab.url.startsWith('about:') ||
+        currentTab.url.startsWith('chrome-extension://')) {
+      showStatus('Cannot fill forms on browser pages', 'error');
+      return;
+    }
+    
     chrome.storage.sync.get(['autofillData', 'customFields'], (result) => {
-      if (result.autofillData) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { action: 'fillForm', data: result.autofillData, customFields: result.customFields || [] },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              showStatus('Error: Could not fill form', 'error');
-            } else {
-              showStatus('Form filled successfully!', 'success');
-            }
-          }
-        );
-      } else {
+      if (!result.autofillData) {
         showStatus('No saved data found', 'error');
+        return;
       }
+      
+      // Try to send message, if fails, inject content script first
+      chrome.tabs.sendMessage(
+        currentTab.id,
+        { action: 'fillForm', data: result.autofillData, customFields: result.customFields || [] },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            // Content script not loaded, inject it
+            chrome.scripting.executeScript({
+              target: { tabId: currentTab.id },
+              files: ['content.js']
+            }).then(() => {
+              // Try again after injecting
+              setTimeout(() => {
+                chrome.tabs.sendMessage(
+                  currentTab.id,
+                  { action: 'fillForm', data: result.autofillData, customFields: result.customFields || [] },
+                  (response) => {
+                    if (chrome.runtime.lastError) {
+                      showStatus('Error: Could not fill form', 'error');
+                    } else {
+                      showStatus('Form filled successfully!', 'success');
+                    }
+                  }
+                );
+              }, 100);
+            }).catch((error) => {
+              showStatus('Error: Cannot access this page', 'error');
+            });
+          } else {
+            showStatus('Form filled successfully!', 'success');
+          }
+        }
+      );
     });
   });
 }
